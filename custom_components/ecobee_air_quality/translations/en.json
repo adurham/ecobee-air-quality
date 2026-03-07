@@ -1,0 +1,51 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Ecobee Air Quality",
+        "description": "Sign in with your ecobee account. Credentials are used once to obtain a token and are never stored.",
+        "data": {
+          "email": "Email",
+          "password": "Password",
+          "refresh_token": "Refresh token (advanced)"
+        }
+      },
+      "mfa": {
+        "title": "Ecobee MFA Verification",
+        "description": "Enter the verification code from your authenticator app.",
+        "data": {
+          "mfa_code": "Verification code"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Re-authenticate Ecobee",
+        "description": "Your ecobee session has expired. Please sign in again.",
+        "data": {
+          "email": "Email",
+          "password": "Password",
+          "refresh_token": "Refresh token (advanced)"
+        }
+      },
+      "reauth_mfa": {
+        "title": "Ecobee MFA Verification",
+        "description": "Enter the verification code from your authenticator app.",
+        "data": {
+          "mfa_code": "Verification code"
+        }
+      }
+    },
+    "error": {
+      "invalid_auth": "Invalid email or password.",
+      "login_failed": "Login failed. Check your credentials or try again later.",
+      "missing_credentials": "Enter your email and password, or provide a refresh token.",
+      "no_refresh_token": "Login succeeded but no refresh token was returned. Please try again.",
+      "missing_mfa_code": "Enter your verification code.",
+      "invalid_mfa_code": "Invalid verification code. Please try again.",
+      "mfa_failed": "MFA verification failed. Please try again."
+    },
+    "abort": {
+      "already_configured": "Already configured.",
+      "reauth_successful": "Re-authentication successful."
+    }
+  }
+}
