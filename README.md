@@ -20,7 +20,7 @@ Sensors poll every 5 minutes. Thermostats without air quality hardware are autom
 
 1. Open HACS in Home Assistant
 2. Click the three dots menu → **Custom repositories**
-3. Add `https://github.com/adam-durham/ecobee-air-quality` as an **Integration**
+3. Add `https://github.com/adurham/ecobee-air-quality` as an **Integration**
 4. Search for "Ecobee Air Quality" and install
 5. Restart Home Assistant
 
@@ -45,6 +45,12 @@ If the login flow doesn't work for your account, you can paste a refresh token d
 ## Reauth
 
 If the refresh token expires or is revoked, Home Assistant will show a notification prompting you to re-authenticate. The reauth flow is the same as initial setup.
+
+## Known Limitations
+
+- **Unofficial API** — This integration uses ecobee's consumer API, not an official developer API. Ecobee could change or restrict it at any time.
+- **Token lifetime** — Refresh token durability depends on ecobee's Auth0 server-side configuration (e.g., absolute expiry, inactivity timeout), which we don't control. If the token expires, Home Assistant will prompt you to re-authenticate. How frequently this happens (if ever) is unknown.
+- **Token rotation** — Auth0 may rotate refresh tokens on each use. If Home Assistant crashes between receiving a new token and persisting it, the old token may be invalidated. In practice Auth0 provides a short reuse window, making this unlikely but possible.
 
 ## How it works
 
