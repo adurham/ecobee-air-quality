@@ -67,4 +67,12 @@ SENSOR_TYPES = {
         "icon": "mdi:fire",
         "data_key": "heat_stages",
     },
+    "humidity": {
+        "name": "Humidity",
+        "device_class": "humidity",
+        "native_unit_of_measurement": "%",
+        "state_class": "measurement",
+        "icon": "mdi:water-percent",
+        "data_key": "humidity",
+    },
 }

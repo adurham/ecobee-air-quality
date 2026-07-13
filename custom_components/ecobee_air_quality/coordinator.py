@@ -160,6 +160,7 @@ class EcobeeAirQualityCoordinator(DataUpdateCoordinator):
                 "aq_score": aq_score,
                 "aq_accuracy": aq_accuracy,
                 "equipment_status": thermostat.get("equipmentStatus", ""),
+                "humidity": runtime.get("actualHumidity"),
             }
 
             # Also pull equipment capability from settings
