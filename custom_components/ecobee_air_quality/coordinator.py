@@ -90,6 +90,8 @@ class EcobeeAirQualityCoordinator(DataUpdateCoordinator):
                 "selection": {
                     "selectionType": "registered",
                     "includeRuntime": True,
+                    "includeEquipmentStatus": True,
+                    "includeSettings": True,
                 }
             }
         )
@@ -157,10 +159,21 @@ class EcobeeAirQualityCoordinator(DataUpdateCoordinator):
                 "voc_ppb": voc,
                 "aq_score": aq_score,
                 "aq_accuracy": aq_accuracy,
+                "equipment_status": thermostat.get("equipmentStatus", ""),
             }
+
+            # Also pull equipment capability from settings
+            settings = thermostat.get("settings", {})
+            cool_stages = settings.get("coolStages")
+            heat_stages = settings.get("heatStages")
+            if cool_stages is not None:
+                results[slug]["cool_stages"] = cool_stages
+            if heat_stages is not None:
+                results[slug]["heat_stages"] = heat_stages
             _LOGGER.debug(
-                "%s - CO2: %d ppm, VOC: %d ppb, AQ Score: %d",
+                "%s - CO2: %d ppm, VOC: %d ppb, AQ Score: %d, Equipment: %s",
                 name, co2, voc, aq_score,
+                thermostat.get("equipmentStatus", ""),
             )
 
         if not results:

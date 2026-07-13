@@ -43,4 +43,28 @@ SENSOR_TYPES = {
         "icon": "mdi:leaf",
         "data_key": "aq_score",
     },
+    "equipment_status": {
+        "name": "Equipment Status",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": None,
+        "icon": "mdi:hvac",
+        "data_key": "equipment_status",
+    },
+    "cool_stages": {
+        "name": "Cooling Stages",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": "measurement",
+        "icon": "mdi:snowflake",
+        "data_key": "cool_stages",
+    },
+    "heat_stages": {
+        "name": "Heating Stages",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": "measurement",
+        "icon": "mdi:fire",
+        "data_key": "heat_stages",
+    },
 }

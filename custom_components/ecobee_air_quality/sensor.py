@@ -87,7 +87,7 @@ class EcobeeAirQualitySensor(CoordinatorEntity, SensorEntity):
         )
 
     @property
-    def native_value(self) -> int | None:
+    def native_value(self) -> int | str | None:
         """Return the sensor value."""
         if not self.coordinator.data:
             return None
@@ -96,6 +96,9 @@ class EcobeeAirQualitySensor(CoordinatorEntity, SensorEntity):
             return None
         value = thermostat_data.get(self._data_key)
         if value == -5002:
+            return None
+        # Don't expose equipment_status for thermostats that don't have it
+        if self._sensor_key == "equipment_status" and not value:
             return None
         return value
 
