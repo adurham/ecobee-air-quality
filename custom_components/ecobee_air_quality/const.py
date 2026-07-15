@@ -14,8 +14,11 @@ AUTH0_SCOPES = "openid smartRead offline_access"
 # API
 ECOBEE_API = "https://api.ecobee.com/1/thermostat"
 
-# Polling
-SCAN_INTERVAL = timedelta(minutes=5)
+# Polling — ecobee API docs say "DO NOT poll at an interval quicker than
+# once every 3 minutes, which is the shortest interval at which data might
+# change." We use the minimum allowed (3 min) for the best stage-transition
+# resolution on compressor_cool_stage / runtime_seconds sensors.
+SCAN_INTERVAL = timedelta(minutes=3)
 
 # Sensor definitions: (key, name_suffix, device_class, unit, icon)
 SENSOR_TYPES = {
