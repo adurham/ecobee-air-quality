@@ -92,6 +92,7 @@ class EcobeeAirQualityCoordinator(DataUpdateCoordinator):
                     "includeRuntime": True,
                     "includeEquipmentStatus": True,
                     "includeSettings": True,
+                    "includeExtendedRuntime": True,
                 }
             }
         )
@@ -191,6 +192,41 @@ class EcobeeAirQualityCoordinator(DataUpdateCoordinator):
             results[slug]["compressor_cool_stage"] = cool_stage
             results[slug]["compressor_heat_stage"] = heat_stage
             results[slug]["fan_running"] = fan_on
+
+            # Pull per-stage runtime seconds from extendedRuntime.
+            # Each array has 3 values (last 3 5-min intervals); use the most
+            # recent (last element). Values are 0-300 seconds.
+            ext = thermostat.get("extendedRuntime", {})
+            if ext:
+                def _last(arr):
+                    """Return the last element of a 3-element array, or 0."""
+                    if isinstance(arr, list) and arr:
+                        try:
+                            return int(arr[-1])
+                        except (ValueError, TypeError):
+                            return 0
+                    return 0
+                results[slug]["cool1_runtime_seconds"] = _last(ext.get("cool1"))
+                results[slug]["cool2_runtime_seconds"] = _last(ext.get("cool2"))
+                results[slug]["aux_heat1_runtime_seconds"] = _last(ext.get("auxHeat1"))
+                results[slug]["aux_heat2_runtime_seconds"] = _last(ext.get("auxHeat2"))
+                results[slug]["aux_heat3_runtime_seconds"] = _last(ext.get("auxHeat3"))
+                results[slug]["heat_pump1_runtime_seconds"] = _last(ext.get("heatPump1"))
+                results[slug]["heat_pump2_runtime_seconds"] = _last(ext.get("heatPump2"))
+                results[slug]["fan_runtime_seconds"] = _last(ext.get("fan"))
+                results[slug]["dehumidifier_runtime_seconds"] = _last(ext.get("dehumidifier"))
+                results[slug]["humidifier_runtime_seconds"] = _last(ext.get("humidifier"))
+                results[slug]["ventilator_runtime_seconds"] = _last(ext.get("ventilator"))
+                results[slug]["economizer_runtime_seconds"] = _last(ext.get("economizer"))
+                # dmOffset = dehumidify overcool offset in tenths of a degree F
+                # (e.g. 8 = 0.8°F below setpoint). Convert to °F.
+                dm_offset = _last(ext.get("dmOffset"))
+                results[slug]["dehumidify_overcool_offset"] = dm_offset / 10.0
+
+            # Live dehumidify target from runtime (changes with comfort settings)
+            desired_dehum = runtime.get("desiredDehumidity")
+            if desired_dehum is not None and desired_dehum != -5002:
+                results[slug]["desired_dehumidity"] = desired_dehum
 
             # Also pull equipment capability from settings
             settings = thermostat.get("settings", {})
