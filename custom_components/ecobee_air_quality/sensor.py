@@ -71,7 +71,12 @@ class EcobeeAirQualitySensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{entry.entry_id}_{thermostat_slug}_{sensor_key}"
         self._attr_name = sensor_def["name"]
         self._attr_native_unit_of_measurement = sensor_def["native_unit_of_measurement"]
-        self._attr_state_class = SensorStateClass.MEASUREMENT
+        # state_class from the sensor def; equipment_status is a string
+        # (CSV like "compCool1,fan") so it has no state_class.
+        if sensor_def["state_class"] is not None:
+            self._attr_state_class = SensorStateClass.MEASUREMENT
+        else:
+            self._attr_state_class = None
         self._attr_icon = sensor_def["icon"]
 
         if sensor_def["device_class"]:
@@ -97,7 +102,9 @@ class EcobeeAirQualitySensor(CoordinatorEntity, SensorEntity):
         value = thermostat_data.get(self._data_key)
         if value == -5002:
             return None
-        # Don't expose equipment_status for thermostats that don't have it
+        # equipment_status is a CSV string (e.g. "compCool1,fan") or empty.
+        # Return None only if truly empty, so HA shows "unknown" for idle
+        # equipment rather than a stale restored state.
         if self._sensor_key == "equipment_status" and not value:
             return None
         return value

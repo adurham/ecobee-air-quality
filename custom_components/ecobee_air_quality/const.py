@@ -51,6 +51,35 @@ SENSOR_TYPES = {
         "icon": "mdi:hvac",
         "data_key": "equipment_status",
     },
+    # Parsed from the equipmentStatus CSV string (e.g. "compCool1,fan").
+    # These give live compressor staging — the real signal for "is stage 2
+    # engaged right now?" — unlike cool_stages/heat_stages which read the
+    # static settings.coolStages/heatStages config (unit capability, not
+    # live state). Values: 0=idle, 1=stage1, 2=stage2.
+    "compressor_cool_stage": {
+        "name": "Compressor Cool Stage",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": "measurement",
+        "icon": "mdi:snowflake",
+        "data_key": "compressor_cool_stage",
+    },
+    "compressor_heat_stage": {
+        "name": "Compressor Heat Stage",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": "measurement",
+        "icon": "mdi:fire",
+        "data_key": "compressor_heat_stage",
+    },
+    "fan_running": {
+        "name": "Fan Running",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": "measurement",
+        "icon": "mdi:fan",
+        "data_key": "fan_running",
+    },
     "cool_stages": {
         "name": "Cooling Stages",
         "device_class": None,

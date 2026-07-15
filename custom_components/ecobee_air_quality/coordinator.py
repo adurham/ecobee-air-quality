@@ -163,6 +163,35 @@ class EcobeeAirQualityCoordinator(DataUpdateCoordinator):
                 "humidity": runtime.get("actualHumidity"),
             }
 
+            # Parse equipmentStatus CSV into live compressor/fan stage sensors.
+            # ecobee equipmentStatus is a CSV like "compCool1,fan" or
+            # "compCool2,fan" or "auxHeat1,compHeat2,fan" or "" (idle).
+            # compCoolN = compressor cooling stage N (1 or 2)
+            # compHeatN = compressor heating stage N (1 or 2)
+            # auxHeatN  = auxiliary (resistive) heat stage N
+            # fan       = blower running
+            equip = thermostat.get("equipmentStatus", "")
+            parts = [p.strip() for p in equip.split(",") if p.strip()]
+            cool_stage = 0
+            heat_stage = 0
+            fan_on = 0
+            for part in parts:
+                if part.startswith("compCool"):
+                    try:
+                        cool_stage = int(part[len("compCool"):])
+                    except ValueError:
+                        cool_stage = 1
+                elif part.startswith("compHeat"):
+                    try:
+                        heat_stage = int(part[len("compHeat"):])
+                    except ValueError:
+                        heat_stage = 1
+                elif part == "fan":
+                    fan_on = 1
+            results[slug]["compressor_cool_stage"] = cool_stage
+            results[slug]["compressor_heat_stage"] = heat_stage
+            results[slug]["fan_running"] = fan_on
+
             # Also pull equipment capability from settings
             settings = thermostat.get("settings", {})
             cool_stages = settings.get("coolStages")
