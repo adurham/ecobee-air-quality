@@ -230,6 +230,108 @@ class EcobeeAirQualityCoordinator(DataUpdateCoordinator):
 
             # Also pull equipment capability from settings
             settings = thermostat.get("settings", {})
+
+            # ---- Staging / threshold / config fields from the settings block ----
+            # ecobee settings API exposes ONLY stage1* thresholds. There is NO
+            # stage2CoolingDifferentialTemp key — stage-2 engagement is governed
+            # by an internal ecobee algorithm (rate of temp change, stage-1
+            # runtime, outdoor temp if connected) that is not readable via the
+            # consumer API. The only way to know stage 2 engaged is the live
+            # compressor_cool_stage sensor above. See warm fact / SKILL.md.
+            #
+            # Temperature values in the settings API are in TENTHS of a degree F
+            # (e.g. 10 -> 1.0F). Convert to F for the sensors. Time values are
+            # in SECONDS except fanMinOnTime / ventilatorMinOnTime which are in
+            # MINUTES.
+            def _to_f(raw, default=None):
+                """Convert ecobee tenths-of-F to degrees F, or default if absent."""
+                if raw is None or raw == "":
+                    return default
+                try:
+                    return int(raw) / 10.0
+                except (ValueError, TypeError):
+                    return default
+
+            def _to_s(raw, default=None):
+                """Pass through a seconds value (int), or default if absent."""
+                if raw is None or raw == "":
+                    return default
+                try:
+                    return int(raw)
+                except (ValueError, TypeError):
+                    return default
+
+            def _to_min(raw, default=None):
+                """Pass through a minutes value (int), or default if absent."""
+                if raw is None or raw == "":
+                    return default
+                try:
+                    return int(raw)
+                except (ValueError, TypeError):
+                    return default
+
+            # Staging thresholds (the answer to "when does the compressor stage")
+            stage1_cool_diff = settings.get("stage1CoolingDifferentialTemp")
+            if stage1_cool_diff is not None:
+                results[slug]["stage1_cooling_differential_temp_f"] = _to_f(stage1_cool_diff)
+            stage1_heat_diff = settings.get("stage1HeatingDifferentialTemp")
+            if stage1_heat_diff is not None:
+                results[slug]["stage1_heating_differential_temp_f"] = _to_f(stage1_heat_diff)
+            stage1_cool_diss = settings.get("stage1CoolingDissipationTime")
+            if stage1_cool_diss is not None:
+                results[slug]["stage1_cooling_dissipation_time_s"] = _to_s(stage1_cool_diss)
+            stage1_heat_diss = settings.get("stage1HeatingDissipationTime")
+            if stage1_heat_diss is not None:
+                results[slug]["stage1_heating_dissipation_time_s"] = _to_s(stage1_heat_diss)
+            comp_prot_time = settings.get("compressorProtectionMinTime")
+            if comp_prot_time is not None:
+                results[slug]["compressor_protection_min_time_s"] = _to_s(comp_prot_time)
+            comp_prot_temp = settings.get("compressorProtectionMinTemp")
+            if comp_prot_temp is not None:
+                results[slug]["compressor_protection_min_temp_f"] = _to_f(comp_prot_temp)
+            heat_cool_min_delta = settings.get("heatCoolMinDelta")
+            if heat_cool_min_delta is not None:
+                results[slug]["heat_cool_min_delta_f"] = _to_f(heat_cool_min_delta)
+
+            # Setpoint ranges (the envelope the user can choose within)
+            results[slug]["cool_range_high_f"] = _to_f(settings.get("coolRangeHigh"))
+            results[slug]["cool_range_low_f"] = _to_f(settings.get("coolRangeLow"))
+            results[slug]["heat_range_high_f"] = _to_f(settings.get("heatRangeHigh"))
+            results[slug]["heat_range_low_f"] = _to_f(settings.get("heatRangeLow"))
+
+            # Fan / ventilation config
+            results[slug]["fan_min_on_time_min"] = _to_min(settings.get("fanMinOnTime"))
+            results[slug]["ventilator_min_on_time_min"] = _to_min(settings.get("ventilatorMinOnTime"))
+            results[slug]["ventilator_min_on_time_home_min"] = _to_min(settings.get("ventilatorMinOnTimeHome"))
+            results[slug]["ventilator_min_on_time_away_min"] = _to_min(settings.get("ventilatorMinOnTimeAway"))
+            results[slug]["smart_circulation"] = bool(settings.get("smartCirculation", False))
+            results[slug]["ventilator_free_cooling"] = bool(settings.get("ventilatorFreeCooling", False))
+
+            # Dehumidification config (live settings, not the runtime target)
+            dehum_level = settings.get("dehumidifierLevel")
+            if dehum_level is not None:
+                results[slug]["dehumidifier_level_pct"] = dehum_level
+            results[slug]["dehumidify_overcool_offset_config"] = _to_f(settings.get("dehumidifyOvercoolOffset"))
+            results[slug]["dehumidifier_mode"] = settings.get("dehumidifierMode")
+            results[slug]["dehumidify_with_ac"] = bool(settings.get("dehumidifyWithAC", False))
+            results[slug]["dehumidify_when_heating"] = bool(settings.get("dehumidifyWhenHeating", False))
+
+            # Equipment capability / system type flags
+            results[slug]["has_heat_pump"] = bool(settings.get("hasHeatPump", False))
+            results[slug]["has_forced_air"] = bool(settings.get("hasForcedAir", False))
+            results[slug]["has_boiler"] = bool(settings.get("hasBoiler", False))
+            results[slug]["has_humidifier"] = bool(settings.get("hasHumidifier", False))
+            results[slug]["has_dehumidifier"] = bool(settings.get("hasDehumidifier", False))
+            results[slug]["use_zone_controller"] = bool(settings.get("useZoneController", False))
+
+            # Top-level mode flags
+            results[slug]["hvac_mode_setting"] = settings.get("hvacMode")
+            results[slug]["follow_me_comfort"] = bool(settings.get("followMeComfort", False))
+            results[slug]["auto_heat_cool_enabled"] = bool(settings.get("autoHeatCoolFeatureEnabled", False))
+            results[slug]["cooling_lockout"] = bool(settings.get("coolingLockout", False))
+
+            # Static stage capability (already exposed as cool_stages/heat_stages
+            # above — kept for back-compat with existing sensors)
             cool_stages = settings.get("coolStages")
             heat_stages = settings.get("heatStages")
             if cool_stages is not None:
