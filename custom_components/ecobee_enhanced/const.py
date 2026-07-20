@@ -1,8 +1,8 @@
-"""Constants for Ecobee Air Quality integration."""
+"""Constants for Ecobee Enhanced integration."""
 
 from datetime import timedelta
 
-DOMAIN = "ecobee_air_quality"
+DOMAIN = "ecobee_enhanced"
 
 # Auth0 config (from ecobee web app)
 AUTH0_DOMAIN = "auth.ecobee.com"

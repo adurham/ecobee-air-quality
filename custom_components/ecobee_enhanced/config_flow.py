@@ -1,4 +1,4 @@
-"""Config flow for Ecobee Air Quality integration."""
+"""Config flow for Ecobee Enhanced integration."""
 
 from __future__ import annotations
 
@@ -15,8 +15,8 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 
-class EcobeeAirQualityConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Handle a config flow for Ecobee Air Quality."""
+class EcobeeEnhancedConfigFlow(ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for Ecobee Enhanced."""
 
     VERSION = 1
 
@@ -40,7 +40,7 @@ class EcobeeAirQualityConfigFlow(ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(DOMAIN)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title="Ecobee Air Quality",
+                    title="Ecobee Enhanced",
                     data={"refresh_token": refresh_token},
                 )
 
@@ -66,7 +66,7 @@ class EcobeeAirQualityConfigFlow(ConfigFlow, domain=DOMAIN):
                         await self.async_set_unique_id(DOMAIN)
                         self._abort_if_unique_id_configured()
                         return self.async_create_entry(
-                            title="Ecobee Air Quality",
+                            title="Ecobee Enhanced",
                             data={"refresh_token": refresh_token},
                         )
 
@@ -110,7 +110,7 @@ class EcobeeAirQualityConfigFlow(ConfigFlow, domain=DOMAIN):
                         await self.async_set_unique_id(DOMAIN)
                         self._abort_if_unique_id_configured()
                         return self.async_create_entry(
-                            title="Ecobee Air Quality",
+                            title="Ecobee Enhanced",
                             data={"refresh_token": refresh_token},
                         )
 

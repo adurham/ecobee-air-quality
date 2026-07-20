@@ -1,6 +1,6 @@
 {
-  "domain": "ecobee_air_quality",
-  "name": "Ecobee Air Quality",
+  "domain": "ecobee_enhanced",
+  "name": "Ecobee Enhanced",
   "codeowners": ["@adurham"],
   "config_flow": true,
   "documentation": "https://github.com/adurham/ecobee-air-quality",

@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Ecobee Air Quality",
+        "title": "Ecobee Enhanced",
         "description": "Sign in with your ecobee account. Credentials are used once to obtain a token and are never stored.",
         "data": {
           "email": "Email",

@@ -1,18 +1,30 @@
-# Ecobee Air Quality
+# Ecobee Enhanced
 
-A Home Assistant custom integration that exposes CO2, VOC, and Air Quality Score sensors from ecobee thermostats with built-in air quality monitoring.
+A Home Assistant custom integration that exposes extended data from ecobee thermostats — air quality, equipment status, runtime, staging thresholds, and system configuration.
 
 ## Sensors
 
-For each thermostat with an air quality sensor, this integration creates:
+For each thermostat, this integration creates sensors across several categories:
 
-| Sensor | Unit | Device Class |
-|--------|------|-------------|
-| CO2 | ppm | `carbon_dioxide` |
-| VOC | ppb | `volatile_organic_compounds_parts` |
-| Air Quality Score | — | — |
+**Air Quality** — CO2, VOC, Air Quality Score
 
-Sensors poll every 5 minutes. Thermostats without air quality hardware are automatically excluded.
+**Equipment Status** — live compressor staging (cool/heat), fan running, equipment status CSV
+
+**Runtime** — per-stage runtime seconds (cool1, cool2, aux heat, heat pump, fan, dehumidifier, humidifier, ventilator, economizer), dehumidify overcool offset
+
+**Staging Thresholds** — stage 1 cooling/heating differential temp, dissipation time, compressor protection, heat-cool min delta
+
+**Setpoint Ranges** — cool/heat range high/low
+
+**Fan & Ventilation** — fan min on time, ventilator min on time (home/away), smart circulation, free cooling
+
+**Dehumidification** — dehumidifier level, mode, overcool offset, dehumidify with AC/when heating
+
+**System Capabilities** — has heat pump, forced air, boiler, humidifier, dehumidifier, zone controller
+
+**Mode Flags** — HVAC mode setting, follow me comfort, auto heat/cool, cooling lockout
+
+Sensors poll every 3 minutes. Thermostats without air quality hardware are automatically excluded.
 
 ## Installation
 
@@ -21,17 +33,17 @@ Sensors poll every 5 minutes. Thermostats without air quality hardware are autom
 1. Open HACS in Home Assistant
 2. Click the three dots menu → **Custom repositories**
 3. Add `https://github.com/adurham/ecobee-air-quality` as an **Integration**
-4. Search for "Ecobee Air Quality" and install
+4. Search for "Ecobee Enhanced" and install
 5. Restart Home Assistant
 
 ### Manual
 
-Copy the `custom_components/ecobee_air_quality` folder into your Home Assistant `custom_components` directory and restart.
+Copy the `custom_components/ecobee_enhanced` folder into your Home Assistant `custom_components` directory and restart.
 
 ## Setup
 
 1. Go to **Settings → Devices & Services → Add Integration**
-2. Search for **Ecobee Air Quality**
+2. Search for **Ecobee Enhanced**
 3. Enter your ecobee account email and password
 4. If MFA is enabled, enter your verification code when prompted
 5. Sensors will appear under the **Ecobee [Thermostat Name]** device
@@ -54,7 +66,7 @@ If the refresh token expires or is revoked, Home Assistant will show a notificat
 
 ## How it works
 
-Ecobee's consumer API (the same one the web app uses) returns air quality data that isn't available through ecobee's official developer API. This integration authenticates via ecobee's Auth0 login flow with PKCE, then polls the consumer API for thermostat data including CO2, VOC, and air quality score readings.
+Ecobee's consumer API (the same one the web app uses) returns data that isn't available through ecobee's official developer API. This integration authenticates via ecobee's Auth0 login flow with PKCE, then polls the consumer API for thermostat data including air quality, equipment status, runtime, and settings.
 
 ## License
 

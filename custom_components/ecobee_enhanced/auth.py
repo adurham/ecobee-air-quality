@@ -1,4 +1,4 @@
-"""Async auth helpers for Ecobee Air Quality integration."""
+"""Async auth helpers for Ecobee Enhanced integration."""
 
 from __future__ import annotations
 

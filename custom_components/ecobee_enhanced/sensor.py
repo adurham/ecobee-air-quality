@@ -1,4 +1,4 @@
-"""Sensor platform for Ecobee Air Quality."""
+"""Sensor platform for Ecobee Enhanced."""
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, SENSOR_TYPES
-from .coordinator import EcobeeAirQualityCoordinator
+from .coordinator import EcobeeEnhancedCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,15 +26,15 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up Ecobee Air Quality sensors from a config entry."""
-    coordinator: EcobeeAirQualityCoordinator = hass.data[DOMAIN][entry.entry_id]
+    """Set up Ecobee Enhanced sensors from a config entry."""
+    coordinator: EcobeeEnhancedCoordinator = hass.data[DOMAIN][entry.entry_id]
 
     entities = []
     for thermostat_slug, thermostat_data in coordinator.data.items():
         thermostat_name = thermostat_data["thermostat"]
         for sensor_key, sensor_def in SENSOR_TYPES.items():
             entities.append(
-                EcobeeAirQualitySensor(
+                EcobeeEnhancedSensor(
                     coordinator=coordinator,
                     entry=entry,
                     thermostat_slug=thermostat_slug,
@@ -47,14 +47,14 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class EcobeeAirQualitySensor(CoordinatorEntity, SensorEntity):
-    """Representation of an Ecobee air quality sensor."""
+class EcobeeEnhancedSensor(CoordinatorEntity, SensorEntity):
+    """Representation of an Ecobee Enhanced sensor."""
 
     _attr_has_entity_name = True
 
     def __init__(
         self,
-        coordinator: EcobeeAirQualityCoordinator,
+        coordinator: EcobeeEnhancedCoordinator,
         entry: ConfigEntry,
         thermostat_slug: str,
         thermostat_name: str,

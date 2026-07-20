@@ -1,4 +1,4 @@
-"""Diagnostics support for Ecobee Air Quality."""
+"""Diagnostics support for Ecobee Enhanced."""
 
 from __future__ import annotations
 

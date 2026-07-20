@@ -1,4 +1,4 @@
-"""Data update coordinator for Ecobee Air Quality."""
+"""Data update coordinator for Ecobee Enhanced."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from .const import ECOBEE_API, SCAN_INTERVAL
 _LOGGER = logging.getLogger(__name__)
 
 
-class EcobeeAirQualityCoordinator(DataUpdateCoordinator):
+class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
     """Coordinator to poll ecobee air quality data."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -28,7 +28,7 @@ class EcobeeAirQualityCoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name="Ecobee Air Quality",
+            name="Ecobee Enhanced",
             update_interval=SCAN_INTERVAL,
         )
         self.entry = entry
