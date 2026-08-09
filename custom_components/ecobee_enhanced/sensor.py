@@ -131,15 +131,30 @@ class EcobeeEnhancedSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict | None:
-        """Return additional attributes for air quality score."""
-        if self._sensor_key != "air_quality_score":
-            return None
+        """Return additional attributes for air quality score / climate_count."""
         if not self.coordinator.data:
             return None
         thermostat_data = self.coordinator.data.get(self._thermostat_slug)
         if not thermostat_data:
             return None
-        return {"aq_accuracy": thermostat_data.get("aq_accuracy", 0)}
+        if self._sensor_key == "air_quality_score":
+            return {"aq_accuracy": thermostat_data.get("aq_accuracy", 0)}
+        if self._sensor_key == "climate_count":
+            # Full climate definitions (setpoints, fan mode per comfort
+            # setting) and the 7x48 weekly schedule grid. Too structured
+            # for a scalar state, so it rides as attributes on the count
+            # sensor — use a template sensor or automation to pull specific
+            # values out of these if you need them elsewhere.
+            return {
+                "climates": thermostat_data.get("climates", {}),
+                "schedule": thermostat_data.get("schedule", []),
+            }
+        if self._sensor_key == "latest_alert_severity":
+            # Carry the acknowledgeRef so the Acknowledge Function's button
+            # (or a script) can reference it without a separate sensor.
+            return {"acknowledge_ref": thermostat_data.get("latest_alert_ref", "")}
+        return None
+
 
     @property
     def entity_registry_enabled_default(self) -> bool:

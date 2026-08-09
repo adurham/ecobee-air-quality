@@ -20,6 +20,16 @@ from .const import ECOBEE_API, SCAN_INTERVAL
 _LOGGER = logging.getLogger(__name__)
 
 
+def _climate_temp_to_f(raw) -> float | None:
+    """Convert an ecobee Climate heatTemp/coolTemp (tenths of °F) to °F."""
+    if raw is None or raw == "":
+        return None
+    try:
+        return int(raw) / 10.0
+    except (ValueError, TypeError):
+        return None
+
+
 class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
     """Coordinator to poll ecobee air quality data."""
 
@@ -247,6 +257,31 @@ class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
             program = thermostat.get("program", {})
             results[slug]["current_climate_ref"] = program.get("currentClimateRef", "")
 
+            # ---- Full climates + schedule (Program object) ----
+            # climates[] is the actual Home/Away/Sleep/custom comfort
+            # setting DEFINITIONS (setpoints, fan mode) — distinct from
+            # current_climate_ref above, which only says which one is
+            # active. schedule is a 7-day x 48-half-hour-slot grid of
+            # climateRef strings (index 0 = Sunday 00:00-00:30, etc.) —
+            # this is literally the thermostat's programmed schedule.
+            climates = {}
+            for cl in program.get("climates", []):
+                cl_ref = cl.get("climateRef", "")
+                if not cl_ref:
+                    continue
+                climates[cl_ref] = {
+                    "name": cl.get("name", cl_ref),
+                    "heat_temp_f": _climate_temp_to_f(cl.get("heatTemp")),
+                    "cool_temp_f": _climate_temp_to_f(cl.get("coolTemp")),
+                    "heat_fan": cl.get("heatFan", ""),
+                    "cool_fan": cl.get("coolFan", ""),
+                    "vent": cl.get("vent", ""),
+                    "is_occupied": bool(cl.get("isOccupied", False)),
+                }
+            results[slug]["climates"] = climates
+            results[slug]["climate_count"] = len(climates)
+            results[slug]["schedule"] = program.get("schedule", [])
+
             # Pull per-stage runtime seconds from extendedRuntime.
             # Each array has 3 values (last 3 5-min intervals); use the most
             # recent (last element). Values are 0-300 seconds.
@@ -463,9 +498,13 @@ class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
                 latest = alerts[0]
                 results[slug]["latest_alert_text"] = latest.get("text", "")
                 results[slug]["latest_alert_severity"] = latest.get("severity", "")
+                # acknowledgeRef is required by the Acknowledge Function to
+                # dismiss this specific alert.
+                results[slug]["latest_alert_ref"] = latest.get("acknowledgeRef", "")
             else:
                 results[slug]["latest_alert_text"] = ""
                 results[slug]["latest_alert_severity"] = ""
+                results[slug]["latest_alert_ref"] = ""
 
             _LOGGER.debug(
                 "%s - CO2: %d ppm, VOC: %d ppb, AQ Score: %d, Equipment: %s",

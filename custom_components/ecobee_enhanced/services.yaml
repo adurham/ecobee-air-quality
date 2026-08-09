@@ -1,0 +1,179 @@
+set_hold_temperature:
+  name: Set Hold Temperature
+  description: >-
+    Create a manual temperature hold (ecobee setHold function). Bypasses
+    the schedule with an explicit heat/cool setpoint pair until resumed
+    or the hold_type condition ends. Use button.*_resume_program to end it.
+  fields:
+    heat_temp_f:
+      name: Heat Setpoint
+      description: Heating setpoint in °F.
+      required: true
+      example: 68
+      selector:
+        number:
+          min: 45
+          max: 95
+          step: 0.5
+          unit_of_measurement: °F
+    cool_temp_f:
+      name: Cool Setpoint
+      description: Cooling setpoint in °F.
+      required: true
+      example: 74
+      selector:
+        number:
+          min: 45
+          max: 95
+          step: 0.5
+          unit_of_measurement: °F
+    hold_type:
+      name: Hold Type
+      description: >-
+        indefinite = hold until manually resumed. nextTransition = hold
+        until the next scheduled comfort setting change. askMe = ecobee
+        prompts the user on the thermostat itself.
+      required: false
+      default: indefinite
+      selector:
+        select:
+          options:
+            - indefinite
+            - nextTransition
+            - askMe
+
+create_vacation:
+  name: Create Vacation
+  description: >-
+    Create a vacation event (ecobee createVacation function) — a
+    scheduled hold with a defined start/end, distinct from an indefinite
+    manual hold.
+  fields:
+    name:
+      name: Vacation Name
+      description: A name for this vacation event.
+      required: true
+      example: "Ski trip"
+      selector:
+        text:
+    heat_temp_f:
+      name: Heat Setpoint
+      required: true
+      example: 60
+      selector:
+        number:
+          min: 45
+          max: 95
+          step: 0.5
+          unit_of_measurement: °F
+    cool_temp_f:
+      name: Cool Setpoint
+      required: true
+      example: 82
+      selector:
+        number:
+          min: 45
+          max: 95
+          step: 0.5
+          unit_of_measurement: °F
+    start_date:
+      name: Start Date
+      description: "Format: YYYY-MM-DD, in the thermostat's local time."
+      required: true
+      example: "2026-12-20"
+      selector:
+        text:
+    start_time:
+      name: Start Time
+      description: "Format: HH:MM:SS, 24-hour, in the thermostat's local time."
+      required: true
+      example: "08:00:00"
+      selector:
+        text:
+    end_date:
+      name: End Date
+      required: true
+      example: "2026-12-27"
+      selector:
+        text:
+    end_time:
+      name: End Time
+      required: true
+      example: "18:00:00"
+      selector:
+        text:
+
+delete_vacation:
+  name: Delete Vacation
+  description: Delete a vacation event by name (ecobee deleteVacation function).
+  fields:
+    name:
+      name: Vacation Name
+      description: Must match the name used when the vacation was created.
+      required: true
+      example: "Ski trip"
+      selector:
+        text:
+
+send_message:
+  name: Send Message
+  description: >-
+    Push a text message to the thermostat's own screen (ecobee
+    sendMessage function).
+  fields:
+    text:
+      name: Message Text
+      required: true
+      example: "Filter changed 2026-08-09"
+      selector:
+        text:
+
+set_occupied:
+  name: Set Occupied
+  description: >-
+    Manually override the thermostat's occupancy detection (ecobee
+    setOccupied function). Only works on thermostats with occupancy
+    sensing enabled.
+  fields:
+    occupied:
+      name: Occupied
+      required: true
+      selector:
+        boolean:
+    hold_type:
+      name: Hold Type
+      required: false
+      default: indefinite
+      selector:
+        select:
+          options:
+            - indefinite
+            - nextTransition
+
+acknowledge_alert:
+  name: Acknowledge Alert
+  description: >-
+    Dismiss a pending thermostat alert (ecobee acknowledge function).
+    Get acknowledge_ref from the acknowledge_ref attribute on the
+    "Latest Alert Severity" sensor.
+  fields:
+    acknowledge_ref:
+      name: Acknowledge Reference
+      description: >-
+        The alert's acknowledgeRef, read from
+        sensor.ecobee_<thermostat>_latest_alert_severity's
+        acknowledge_ref attribute.
+      required: true
+      example: "1234567890"
+      selector:
+        text:
+    ack_type:
+      name: Acknowledge Type
+      required: false
+      default: accept
+      selector:
+        select:
+          options:
+            - accept
+            - decline
+            - defer

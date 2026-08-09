@@ -624,4 +624,16 @@ SENSOR_TYPES = {
         "icon": "mdi:alert-circle",
         "data_key": "latest_alert_severity",
     },
+    # ---- Program: climate definitions + weekly schedule ----
+    # climate_count is a simple numeric state; the full climates dict and
+    # schedule grid are exposed as extra_state_attributes on this same
+    # entity (see sensor.py) since neither is a scalar HA state value.
+    "climate_count": {
+        "name": "Climate Count",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": "measurement",
+        "icon": "mdi:thermostat-box",
+        "data_key": "climate_count",
+    },
 }
