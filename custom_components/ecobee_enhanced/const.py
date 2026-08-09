@@ -536,4 +536,92 @@ SENSOR_TYPES = {
         "icon": "mdi:thermostat-auto",
         "data_key": "current_climate_ref",
     },
+    # ---- Weather (Selection.includeWeather) ----
+    # The ecobee's own outdoor conditions, as used by its ventilator
+    # free-cooling / dehumidify logic. Distinct from any HA weather
+    # integration — this is literally what the thermostat itself sees.
+    "weather_temperature_f": {
+        "name": "Weather Temperature",
+        "device_class": "temperature",
+        "native_unit_of_measurement": "°F",
+        "state_class": "measurement",
+        "icon": "mdi:thermometer",
+        "data_key": "weather_temperature_f",
+    },
+    "weather_dewpoint_f": {
+        "name": "Weather Dew Point",
+        "device_class": "temperature",
+        "native_unit_of_measurement": "°F",
+        "state_class": "measurement",
+        "icon": "mdi:water-thermometer",
+        "data_key": "weather_dewpoint_f",
+    },
+    "weather_humidity_pct": {
+        "name": "Weather Humidity",
+        "device_class": "humidity",
+        "native_unit_of_measurement": "%",
+        "state_class": "measurement",
+        "icon": "mdi:water-percent",
+        "data_key": "weather_humidity_pct",
+    },
+    "weather_condition": {
+        "name": "Weather Condition",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": None,
+        "icon": "mdi:weather-partly-cloudy",
+        "data_key": "weather_condition",
+    },
+    "weather_wind_speed_mph": {
+        "name": "Weather Wind Speed",
+        "device_class": "wind_speed",
+        "native_unit_of_measurement": "mph",
+        "state_class": "measurement",
+        "icon": "mdi:weather-windy",
+        "data_key": "weather_wind_speed_mph",
+    },
+    "weather_pressure": {
+        "name": "Weather Pressure",
+        "device_class": "atmospheric_pressure",
+        "native_unit_of_measurement": "inHg",
+        "state_class": "measurement",
+        "icon": "mdi:gauge",
+        "data_key": "weather_pressure",
+    },
+    "weather_station": {
+        "name": "Weather Station",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": None,
+        "icon": "mdi:radio-tower",
+        "data_key": "weather_station",
+    },
+    # ---- Alerts (Selection.includeAlerts) ----
+    # Maintenance reminders (filter change, etc.) and equipment fault
+    # notifications the ecobee itself raised. alert_count is a summable
+    # number; latest_alert_text/severity describe the most recent one.
+    "alert_count": {
+        "name": "Alert Count",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": "measurement",
+        "icon": "mdi:bell-alert",
+        "data_key": "alert_count",
+    },
+    "latest_alert_text": {
+        "name": "Latest Alert",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": None,
+        "icon": "mdi:message-alert",
+        "data_key": "latest_alert_text",
+    },
+    "latest_alert_severity": {
+        "name": "Latest Alert Severity",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": None,
+        "icon": "mdi:alert-circle",
+        "data_key": "latest_alert_severity",
+    },
 }

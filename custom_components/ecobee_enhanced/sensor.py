@@ -44,6 +44,26 @@ async def async_setup_entry(
                 )
             )
 
+        # Remote sensors (ecobee3 pucks) are variable per-household, so they
+        # can't be fixed SENSOR_TYPES entries. One HA entity per physical
+        # sensor per capability it actually reports (temperature/occupancy/
+        # humidity), discovered from the first coordinator refresh.
+        for rs_id, rs_data in thermostat_data.get("remote_sensors", {}).items():
+            for cap_key in ("temperature_f", "occupancy", "humidity_pct"):
+                if cap_key not in rs_data:
+                    continue
+                entities.append(
+                    EcobeeRemoteSensor(
+                        coordinator=coordinator,
+                        entry=entry,
+                        thermostat_slug=thermostat_slug,
+                        thermostat_name=thermostat_name,
+                        remote_sensor_id=rs_id,
+                        remote_sensor_name=rs_data.get("name", rs_id),
+                        capability_key=cap_key,
+                    )
+                )
+
     async_add_entities(entities)
 
 
@@ -120,6 +140,92 @@ class EcobeeEnhancedSensor(CoordinatorEntity, SensorEntity):
         if not thermostat_data:
             return None
         return {"aq_accuracy": thermostat_data.get("aq_accuracy", 0)}
+
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Return if the entity should be enabled by default."""
+        return True
+
+
+_REMOTE_SENSOR_CAP_DEFS = {
+    "temperature_f": {
+        "name_suffix": "Temperature",
+        "device_class": "temperature",
+        "native_unit_of_measurement": "°F",
+        "icon": "mdi:thermometer",
+    },
+    "occupancy": {
+        "name_suffix": "Occupancy",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "icon": "mdi:motion-sensor",
+    },
+    "humidity_pct": {
+        "name_suffix": "Humidity",
+        "device_class": "humidity",
+        "native_unit_of_measurement": "%",
+        "icon": "mdi:water-percent",
+    },
+}
+
+
+class EcobeeRemoteSensor(CoordinatorEntity, SensorEntity):
+    """Representation of one capability of one ecobee3 remote sensor puck."""
+
+    _attr_has_entity_name = True
+
+    def __init__(
+        self,
+        coordinator: EcobeeEnhancedCoordinator,
+        entry: ConfigEntry,
+        thermostat_slug: str,
+        thermostat_name: str,
+        remote_sensor_id: str,
+        remote_sensor_name: str,
+        capability_key: str,
+    ) -> None:
+        """Initialize the remote sensor capability entity."""
+        super().__init__(coordinator)
+        self._thermostat_slug = thermostat_slug
+        self._remote_sensor_id = remote_sensor_id
+        self._capability_key = capability_key
+        cap_def = _REMOTE_SENSOR_CAP_DEFS[capability_key]
+
+        self._attr_unique_id = (
+            f"{entry.entry_id}_{thermostat_slug}_rs_{remote_sensor_id}_{capability_key}"
+        )
+        self._attr_name = f"{remote_sensor_name} {cap_def['name_suffix']}"
+        self._attr_native_unit_of_measurement = cap_def["native_unit_of_measurement"]
+        self._attr_state_class = (
+            "measurement" if capability_key != "occupancy" else None
+        )
+        self._attr_icon = cap_def["icon"]
+        if cap_def["device_class"]:
+            self._attr_device_class = cap_def["device_class"]
+
+        # Group under the SAME device as the parent thermostat's sensors so
+        # remote sensor readings show up alongside CO2/VOC/equipment status
+        # for that thermostat, not as a separate orphan device.
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, f"{entry.entry_id}_{thermostat_slug}")},
+            name=f"Ecobee {thermostat_name}",
+            manufacturer="ecobee",
+            model="Smart Thermostat",
+            entry_type=None,
+        )
+
+    @property
+    def native_value(self):
+        """Return the remote sensor capability value."""
+        if not self.coordinator.data:
+            return None
+        thermostat_data = self.coordinator.data.get(self._thermostat_slug)
+        if not thermostat_data:
+            return None
+        rs_data = thermostat_data.get("remote_sensors", {}).get(self._remote_sensor_id)
+        if not rs_data:
+            return None
+        return rs_data.get(self._capability_key)
 
     @property
     def entity_registry_enabled_default(self) -> bool:

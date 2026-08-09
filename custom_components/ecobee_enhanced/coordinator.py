@@ -95,6 +95,9 @@ class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
                     "includeExtendedRuntime": True,
                     "includeEvents": True,
                     "includeProgram": True,
+                    "includeSensors": True,
+                    "includeWeather": True,
+                    "includeAlerts": True,
                 }
             }
         )
@@ -158,6 +161,10 @@ class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
             slug = name.lower().replace(" ", "_")
             results[slug] = {
                 "thermostat": name,
+                # Thermostat identifier — required as selectionMatch when
+                # calling write Functions (SetHold, ResumeProgram, etc.)
+                # against this specific unit.
+                "identifier": thermostat.get("identifier", ""),
                 "co2_ppm": co2,
                 "voc_ppb": voc,
                 "aq_score": aq_score,
@@ -385,6 +392,81 @@ class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
                 results[slug]["cool_stages"] = cool_stages
             if heat_stages is not None:
                 results[slug]["heat_stages"] = heat_stages
+
+            # ---- Remote sensors (Selection.includeSensors) ----
+            # Each entry in remoteSensors[] is an ecobee3 sensor puck (or the
+            # thermostat's own built-in sensor). capability[] holds one
+            # entry per measurement type on that sensor — typically
+            # "temperature" (tenths of a degree F, as a STRING) and
+            # "occupancy" ("true"/"false" as a STRING). We store per-sensor
+            # dicts keyed by sensor id so the sensor.py platform can expose
+            # one HA entity per physical sensor per capability.
+            remote_sensors = {}
+            for rs in thermostat.get("remoteSensors", []):
+                rs_id = rs.get("id", "")
+                rs_name = rs.get("name", rs_id)
+                caps = {}
+                for cap in rs.get("capability", []):
+                    cap_type = cap.get("type", "")
+                    cap_value = cap.get("value")
+                    if cap_type == "temperature":
+                        try:
+                            caps["temperature_f"] = int(cap_value) / 10.0
+                        except (ValueError, TypeError):
+                            caps["temperature_f"] = None
+                    elif cap_type == "occupancy":
+                        caps["occupancy"] = str(cap_value).lower() == "true"
+                    elif cap_type == "humidity":
+                        try:
+                            caps["humidity_pct"] = int(cap_value)
+                        except (ValueError, TypeError):
+                            caps["humidity_pct"] = None
+                if rs_id:
+                    remote_sensors[rs_id] = {
+                        "name": rs_name,
+                        "type": rs.get("type", ""),
+                        "in_use": bool(rs.get("inUse", False)),
+                        **caps,
+                    }
+            results[slug]["remote_sensors"] = remote_sensors
+
+            # ---- Weather (Selection.includeWeather) ----
+            # weather.forecasts[0] is the current/nearest-term reading.
+            # Temps arrive in tenths of a degree F.
+            weather = thermostat.get("weather", {})
+            forecasts = weather.get("forecasts", [])
+            if forecasts:
+                fc = forecasts[0]
+                def _wf_to_f(raw):
+                    if raw is None:
+                        return None
+                    try:
+                        return int(raw) / 10.0
+                    except (ValueError, TypeError):
+                        return None
+                results[slug]["weather_temperature_f"] = _wf_to_f(fc.get("temperature"))
+                results[slug]["weather_dewpoint_f"] = _wf_to_f(fc.get("dewpoint"))
+                results[slug]["weather_humidity_pct"] = fc.get("relativeHumidity")
+                results[slug]["weather_condition"] = fc.get("condition", "")
+                results[slug]["weather_wind_speed_mph"] = fc.get("windSpeed")
+                results[slug]["weather_pressure"] = fc.get("pressure")
+            results[slug]["weather_station"] = weather.get("weatherStation", "")
+
+            # ---- Alerts (Selection.includeAlerts) ----
+            # alerts[] carries maintenance reminders (filter change, etc.)
+            # and equipment fault notifications the ecobee itself raised.
+            # Surface the count and the most recent alert's text/severity
+            # rather than one entity per alert (the list size varies).
+            alerts = thermostat.get("alerts", [])
+            results[slug]["alert_count"] = len(alerts)
+            if alerts:
+                latest = alerts[0]
+                results[slug]["latest_alert_text"] = latest.get("text", "")
+                results[slug]["latest_alert_severity"] = latest.get("severity", "")
+            else:
+                results[slug]["latest_alert_text"] = ""
+                results[slug]["latest_alert_severity"] = ""
+
             _LOGGER.debug(
                 "%s - CO2: %d ppm, VOC: %d ppb, AQ Score: %d, Equipment: %s",
                 name, co2, voc, aq_score,
@@ -395,3 +477,73 @@ class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
             _LOGGER.warning("No thermostats with air quality sensors found")
 
         return results
+
+    async def async_call_function(
+        self, function_type: str, params: dict | None = None, thermostat_identifier: str | None = None
+    ) -> None:
+        """Call an ecobee Thermostat Function (write path).
+
+        Used for control actions the read-only sensor platform can't do:
+        resumeProgram, setHold, setOccupied, etc. See
+        https://www.ecobee.com/home/developer/api/documentation/v1/functions/using-functions.shtml
+
+        selectionMatch is left empty (matches all registered thermostats)
+        unless thermostat_identifier is given, matching this integration's
+        single-selection-type-registered read pattern. Pass an explicit
+        identifier (from coordinator.data[slug]["identifier"]) once
+        multi-thermostat households need per-unit targeting.
+        """
+        session = async_get_clientsession(self.hass)
+        token = await self._ensure_token(session)
+
+        selection_match = thermostat_identifier or ""
+        body = json.dumps(
+            {
+                "selection": {
+                    "selectionType": "registered" if not thermostat_identifier else "thermostats",
+                    "selectionMatch": selection_match,
+                },
+                "functions": [
+                    {"type": function_type, "params": params or {}}
+                ],
+            }
+        )
+
+        async with session.post(
+            ECOBEE_API,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/json;charset=UTF-8",
+            },
+            params={"format": "json"},
+            data=body,
+        ) as resp:
+            if resp.status == 401:
+                self._access_token = None
+                self._access_token_expires = 0
+                token = await self._ensure_token(session)
+                async with session.post(
+                    ECOBEE_API,
+                    headers={
+                        "Authorization": f"Bearer {token}",
+                        "Content-Type": "application/json;charset=UTF-8",
+                    },
+                    params={"format": "json"},
+                    data=body,
+                ) as retry_resp:
+                    retry_resp.raise_for_status()
+                    result = await retry_resp.json()
+            else:
+                resp.raise_for_status()
+                result = await resp.json()
+
+        status = result.get("status", {})
+        if status.get("code", 0) != 0:
+            raise UpdateFailed(
+                f"Ecobee function {function_type!r} failed: "
+                f"{status.get('message', 'unknown error')}"
+            )
+
+        # Force an immediate refresh so entities reflect the change without
+        # waiting for the next 3-min poll cycle.
+        await self.async_request_refresh()
