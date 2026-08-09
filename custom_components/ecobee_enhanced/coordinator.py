@@ -93,6 +93,8 @@ class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
                     "includeEquipmentStatus": True,
                     "includeSettings": True,
                     "includeExtendedRuntime": True,
+                    "includeEvents": True,
+                    "includeProgram": True,
                 }
             }
         )
@@ -192,6 +194,51 @@ class EcobeeEnhancedCoordinator(DataUpdateCoordinator):
             results[slug]["compressor_cool_stage"] = cool_stage
             results[slug]["compressor_heat_stage"] = heat_stage
             results[slug]["fan_running"] = fan_on
+
+            # ---- Hold / schedule status (events + program blocks) ----
+            # ecobee represents "is this thermostat on a manual hold or
+            # following its schedule" via the events[] array, NOT via any
+            # settings field. events[] contains ALL scheduled AND active
+            # events; only entries with running=True are currently active.
+            # type values include: "hold", "vacation", "quickSave",
+            # "autoAway", "autoHome", "demandResponse", "sensor". A running
+            # "hold" event is a manual override; if none of the running
+            # events is a hold/vacation/quickSave/demandResponse, the
+            # thermostat is following its normal program (schedule).
+            events = thermostat.get("events", [])
+            active_hold = None
+            for ev in events:
+                if not ev.get("running"):
+                    continue
+                ev_type = ev.get("type", "")
+                if ev_type in ("hold", "vacation", "quickSave", "demandResponse"):
+                    active_hold = ev
+                    break
+
+            if active_hold is not None:
+                results[slug]["schedule_status"] = "hold"
+                # holdClimateRef is the comfort setting the hold is using
+                # (e.g. "home", "away", "sleep", or a custom climate ref).
+                results[slug]["hold_climate_ref"] = active_hold.get("holdClimateRef", "")
+                # endDate/endTime are in the thermostat's LOCAL time, ecobee
+                # format YYYY-MM-DD / HH:MM:SS. isFinalHold means "until I
+                # change it" (no end) rather than until next scheduled
+                # transition.
+                results[slug]["hold_end_date"] = active_hold.get("endDate", "")
+                results[slug]["hold_end_time"] = active_hold.get("endTime", "")
+                results[slug]["hold_is_final"] = bool(active_hold.get("isFinalHold", False))
+            else:
+                results[slug]["schedule_status"] = "following_schedule"
+                results[slug]["hold_climate_ref"] = ""
+                results[slug]["hold_end_date"] = ""
+                results[slug]["hold_end_time"] = ""
+                results[slug]["hold_is_final"] = False
+
+            # program.currentClimateRef = which comfort setting (climate) is
+            # active right now, whether from a hold or the schedule. This is
+            # the ecobee's own answer to "what comfort setting am I using".
+            program = thermostat.get("program", {})
+            results[slug]["current_climate_ref"] = program.get("currentClimateRef", "")
 
             # Pull per-stage runtime seconds from extendedRuntime.
             # Each array has 3 values (last 3 5-min intervals); use the most

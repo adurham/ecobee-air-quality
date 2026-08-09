@@ -504,4 +504,36 @@ SENSOR_TYPES = {
         "icon": "mdi:water-percent",
         "data_key": "humidity",
     },
+    # ---- Hold / schedule status (from events[] + program blocks) ----
+    # Answers "is this thermostat on a manual hold or following its
+    # schedule right now", which HomeKit's climate entity does not expose.
+    # Values: "following_schedule" or "hold".
+    "schedule_status": {
+        "name": "Schedule Status",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": None,
+        "icon": "mdi:calendar-clock",
+        "data_key": "schedule_status",
+    },
+    # Which comfort setting (home/away/sleep/custom) the active hold is
+    # using. Empty string when not on a hold.
+    "hold_climate_ref": {
+        "name": "Hold Climate",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": None,
+        "icon": "mdi:thermostat",
+        "data_key": "hold_climate_ref",
+    },
+    # The comfort setting actually driving the thermostat right now,
+    # whether from a hold or the schedule (program.currentClimateRef).
+    "current_climate_ref": {
+        "name": "Current Climate",
+        "device_class": None,
+        "native_unit_of_measurement": None,
+        "state_class": None,
+        "icon": "mdi:thermostat-auto",
+        "data_key": "current_climate_ref",
+    },
 }
