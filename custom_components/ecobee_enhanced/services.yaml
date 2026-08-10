@@ -177,3 +177,43 @@ acknowledge_alert:
             - accept
             - decline
             - defer
+
+set_fan_hold:
+  name: Set Fan Hold
+  description: >-
+    Create a fan-only hold (ecobee setHold function, "fan" param with no
+    heat/coolHoldTemp) — turns the blower on/auto WITHOUT holding
+    temperature setpoints, so the schedule keeps running underneath.
+    Use this instead of any HomeKit-based fan_mode write: setting fan
+    mode through the HomeKit Controller entity is a documented HA bug
+    (home-assistant/core#92010) that always forces an indefinite
+    temperature hold too. Pair with resume_top_event to release.
+  fields:
+    fan_mode:
+      name: Fan Mode
+      required: false
+      default: "on"
+      selector:
+        select:
+          options:
+            - "on"
+            - auto
+    hold_type:
+      name: Hold Type
+      required: false
+      default: indefinite
+      selector:
+        select:
+          options:
+            - indefinite
+            - nextTransition
+            - askMe
+
+resume_top_event:
+  name: Resume Top Event
+  description: >-
+    Pop only the most recently pushed hold event (ecobee resumeProgram,
+    resumeAll=false) — leaves any earlier hold underneath (e.g. a
+    Hold Away the user set) intact. Use this to release a transient
+    fan hold created by set_fan_hold. For a full clear of every hold,
+    use button.*_resume_program instead (resumeAll=true).

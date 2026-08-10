@@ -75,6 +75,33 @@ SERVICE_ACKNOWLEDGE_ALERT_SCHEMA = vol.Schema(
     }
 )
 
+# Pure fan-only hold — sets ONLY the fan, no temperature setpoints. Per
+# ecobee's SetHold docs, passing "fan" without heatHoldTemp/coolHoldTemp
+# creates an event with isTemperatureAbsolute=isTemperatureRelative=false
+# (a "fan hold"), so the schedule's own setpoints keep being honored.
+# Added 2026-08-09: replaces the smart_vent_controller AppDaemon app's old
+# climate/set_fan_mode call against the HomeKit Controller entity, which
+# is a documented HA bug (home-assistant/core#92010) — ANY fan-mode write
+# via HomeKit forces an indefinite temperature hold on ecobee's side, with
+# no clean way to tell it apart from a real comfort-setting hold. Going
+# through this integration's real cloud API avoids that entirely.
+SERVICE_SET_FAN_HOLD = "set_fan_hold"
+SERVICE_SET_FAN_HOLD_SCHEMA = vol.Schema(
+    {
+        vol.Optional("fan_mode", default="on"): vol.In(["on", "auto"]),
+        vol.Optional("hold_type", default="indefinite"): vol.In(
+            ["indefinite", "nextTransition", "askMe"]
+        ),
+    }
+)
+
+# Releases ONLY the most recently pushed hold event (resumeAll=false pops
+# the top of ecobee's event stack). Distinct from button.*_resume_program,
+# which calls resumeAll=true and clears EVERY hold. Callers like FAN-ASSIST
+# must use this one — resumeAll=true would also wipe out a real user hold
+# (e.g. Hold Away) sitting underneath the transient fan hold.
+SERVICE_RESUME_TOP_EVENT = "resume_top_event"
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Ecobee Enhanced from a config entry."""
@@ -155,6 +182,20 @@ def _async_register_services(
             },
         )
 
+    async def _handle_set_fan_hold(call: ServiceCall) -> None:
+        await coordinator.async_call_function(
+            "setHold",
+            params={
+                "holdType": call.data["hold_type"],
+                "fan": call.data["fan_mode"],
+            },
+        )
+
+    async def _handle_resume_top_event(call: ServiceCall) -> None:
+        await coordinator.async_call_function(
+            "resumeProgram", params={"resumeAll": False}
+        )
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_HOLD_TEMP,
@@ -191,6 +232,18 @@ def _async_register_services(
         _handle_acknowledge_alert,
         schema=SERVICE_ACKNOWLEDGE_ALERT_SCHEMA,
     )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_FAN_HOLD,
+        _handle_set_fan_hold,
+        schema=SERVICE_SET_FAN_HOLD_SCHEMA,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_RESUME_TOP_EVENT,
+        _handle_resume_top_event,
+        schema=vol.Schema({}),
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -208,6 +261,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 SERVICE_SEND_MESSAGE,
                 SERVICE_SET_OCCUPIED,
                 SERVICE_ACKNOWLEDGE_ALERT,
+                SERVICE_SET_FAN_HOLD,
+                SERVICE_RESUME_TOP_EVENT,
             ):
                 hass.services.async_remove(DOMAIN, service)
     return unload_ok
